@@ -1,0 +1,49 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+  
+  main {
+    padding: 20px;
+  }
+  
+  #chart-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  #chart {
+    width: 800px;
+    height: 500px;
+  }
+  
+  .bar {
+    fill: steelblue;
+  }
+  
+  .axis path,
+  .axis line {
+    fill: none;
+    shape-rendering: crispEdges;
+    stroke: black;
+    stroke-width: 1px;
+  }
+  
+  .tick text {
+    font-size: 12px;
+  }
+  
+  #tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+  }
+  
