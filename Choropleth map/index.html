@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choropleth Map</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        svg {
+            margin: auto;
+        }
+        .tooltip {
+            position: absolute;
+            background-color: white;
+            border: 1px solid black;
+            padding: 5px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">US Educational Attainment</h1>
+    <p id="description">Percentage of adults age 25 and older with a bachelor's degree or higher (2010-2014)</p>
+    <div id="container">
+        <svg id="choropleth"></svg>
+    </div>
+    <div id="legend"></div>
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        const svgWidth = 960;
+        const svgHeight = 600;
+
+        const svg = d3.select("#choropleth")
+            .attr("width", svgWidth)
+            .attr("height", svgHeight);
+
+        const tooltip = d3.select("#tooltip");
+
+        Promise.all([
+            d3.json("https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json"),
+            d3.json("https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json")
+        ]).then(([us, education]) => {
+            console.log("US Data Loaded:", us);
+            console.log("Education Data Loaded:", education);
+            createChoropleth(us, education);
+        }).catch(error => {
+            console.error("Error fetching data:", error);
+        });
+
+        function createChoropleth(us, education) {
+            const path = d3.geoPath();
+
+            const educationById = {};
+            education.forEach(d => {
+                educationById[d.fips] = d;
+            });
+
+            const colorScale = d3.scaleQuantize()
+                .domain([d3.min(education, d => d.bachelorsOrHigher), d3.max(education, d => d.bachelorsOrHigher)])
+                .range(d3.schemeBlues[9]);
+
+            svg.selectAll("path")
+                .data(topojson.feature(us, us.objects.counties).features)
+                .enter()
+                .append("path")
+                .attr("class", "county")
+                .attr("d", path)
+                .attr("data-fips", d => d.id)
+                .attr("data-education", d => educationById[d.id]?.bachelorsOrHigher || 0)
+                .attr("fill", d => colorScale(educationById[d.id]?.bachelorsOrHigher || 0))
+                .on("mouseover", function (event, d) {
+                    const edu = educationById[d.id] || {};
+                    tooltip.style("opacity", 1)
+                        .html(`${edu.area_name}, ${edu.state}<br>${edu.bachelorsOrHigher}% Bachelor's Degree or Higher`)
+                        .attr("data-education", edu.bachelorsOrHigher || 0)
+                        .style("left", `${event.pageX}px`)
+                        .style("top", `${event.pageY}px`);
+                })
+                .on("mouseout", () => tooltip.style("opacity", 0));
+        }
+    </script>
+</body>
+</html>

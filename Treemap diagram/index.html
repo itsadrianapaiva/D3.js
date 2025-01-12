@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+
+  <title>Treemap Diagram</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px;
+      border-radius: 5px;
+      font-size: 12px;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .tile {
+      stroke: #fff;
+      stroke-width: 1px;
+    }
+    .legend-item {
+      width: 15px;
+      height: 15px;
+      margin: 2px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .legend-label {
+      font-size: 12px;
+      text-align: left;
+    }
+    .tile-text {
+      font-size: 10px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Video Game Sales</h1>
+  <p id="description">Top 100 Most Sold Video Games Grouped by Platform</p>
+  <div id="tooltip"></div>
+  <svg id="treemap" width="960" height="570"></svg>
+  <div id="legend" class="legend"></div>
+
+  <script>
+    const width = 960;
+    const height = 570;
+
+    const svg = d3.select("#treemap")
+      .attr("width", width)
+      .attr("height", height);
+
+    const tooltip = d3.select("#tooltip");
+
+    const dataURL = "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/video-game-sales-data.json";
+
+    d3.json(dataURL).then(data => {
+      const root = d3.hierarchy(data)
+        .sum(d => d.value)
+        .sort((a, b) => b.value - a.value);
+
+      const treemap = d3.treemap()
+        .size([width, height])
+        .paddingInner(1);
+
+      treemap(root);
+
+      const color = d3.scaleOrdinal()
+        .domain(data.children.map(d => d.name))
+        .range(d3.schemeCategory10);
+
+      svg.selectAll(".tile")
+        .data(root.leaves())
+        .enter()
+        .append("rect")
+        .attr("class", "tile")
+        .attr("x", d => d.x0)
+        .attr("y", d => d.y0)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("data-name", d => d.data.name)
+        .attr("data-category", d => d.data.category)
+        .attr("data-value", d => d.data.value)
+        .attr("fill", d => color(d.data.category))
+        .on("mouseover", (event, d) => {
+          tooltip.style("visibility", "visible")
+            .attr("data-value", d.data.value)
+            .html(`
+              <strong>${d.data.name}</strong><br>
+              Category: ${d.data.category}<br>
+              Value: ${d.data.value}
+            `);
+        })
+        .on("mousemove", event => {
+          tooltip.style("top", event.pageY + 10 + "px")
+            .style("left", event.pageX + 10 + "px");
+        })
+        .on("mouseout", () => {
+          tooltip.style("visibility", "hidden");
+        });
+
+      // Modified text rendering
+      svg.selectAll(".tile-text")
+        .data(root.leaves())
+        .enter()
+        .append("text")
+        .attr("class", "tile-text")
+        .selectAll("tspan")
+        .data(d => {
+          const words = d.data.name.split(/(?=[A-Z][^A-Z])/g);
+          const lines = [];
+          let line = "";
+          
+          words.forEach(word => {
+            if ((line + word).length > 10) {
+              lines.push(line);
+              line = word;
+            } else {
+              line = line + word;
+            }
+          });
+          if (line) lines.push(line);
+          return lines.slice(0, 3); // Limit to 3 lines
+        })
+        .enter()
+        .append("tspan")
+        .attr("x", d => d.parent.x0 + 3)
+        .attr("y", (d, i, nodes) => d.parent.y0 + 10 + (i * 10))
+        .text(d => d)
+        .attr("font-size", "9px");
+
+      // Add legend (unchanged)
+      const legend = d3.select("#legend");
+
+      const legendItems = color.domain();
+      const legendItemWidth = 120;
+      const itemsPerRow = Math.floor(width / (legendItemWidth + 20));
+
+      legendItems.forEach((category, i) => {
+        const row = Math.floor(i / itemsPerRow);
+        const col = i % itemsPerRow;
+
+        const group = legend.append("div").style("display", "inline-flex").style("align-items", "center");
+
+        group.append("div")
+          .attr("class", "legend-item")
+          .style("background-color", color(category));
+
+        group.append("span")
+          .attr("class", "legend-label")
+          .text(category);
+      });
+    });
+  </script>
+</body>
+</html>
